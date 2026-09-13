@@ -1,0 +1,404 @@
+Zamek                                                                                                                   PAGE 1
+                         1     ; r0            ; Registr R0 se v tomto programu nepoužívá.
+                         2     ; r1            ; Registr R1 se v tomto programu nepoužívá.
+                         3     ; r2            ; Registr R2 se v tomto programu nepoužívá.
+                         4     ; r3            ; Registr R3 se v tomto programu nepoužívá.
+                         5     ; r4            ; Registr R4 ukládá poslední stisknutou klávesu.
+                         6     ; r5            ; Registr R5 obsahuje číslo, které se má zobrazit na displeji.
+                         7     ; r6            ; Registr R6 slouží jako vnější čítač pro zpoždění.
+                         8     ; r7            ; Registr R7 slouží jako vnitřní čítač pro zpoždění.
+                         9
+                        10     ; RAM 20-23             ; Tato místa v RAM obsahují uložený PIN.
+                        11     ; RAM 24-27             ; Tato místa v RAM obsahují uložený PUK.
+                        12
+  00B0                  13     disp equ p3             ; Nastaví název disp jako zástupný název pro port P3 (displej).
+  0090                  14     klv equ p1              ; Nastaví název klv jako zástupný název pro port P1 (klávesnice).
+                        15
+                        16     org 0                   ; Nastaví začátek programu na adresu 0.
+                        17
+0000 020003             18     jmp start               ; Po spuštění skočí na část programu označenou start.
+                        19
+                        20     start:                          ; Začátek hlavního programu.
+0003 751401             21             mov 20,#1               ; Uloží do RAM adresy 20 hodnotu 1, což je první číslice PINu.
+0006 751502             22             mov 21,#2               ; Uloží do RAM adresy 21 hodnotu 2, což je druhá číslice PINu.
+0009 751603             23             mov 22,#3               ; Uloží do RAM adresy 22 hodnotu 3, což je třetí číslice PINu.
+000C 751704             24             mov 23,#4               ; Uloží do RAM adresy 23 hodnotu 4, což je čtvrtá číslice PINu.
+                        25
+000F 751809             26             mov 24,#9               ; Uloží do RAM adresy 24 hodnotu 9, což je první číslice PUKu.
+0012 751908             27             mov 25,#8               ; Uloží do RAM adresy 25 hodnotu 8, což je druhá číslice PUKu.
+0015 751A07             28             mov 26,#7               ; Uloží do RAM adresy 26 hodnotu 7, což je třetí číslice PUKu.
+0018 751B06             29             mov 27,#6               ; Uloží do RAM adresy 27 hodnotu 6, což je čtvrtá číslice PUKu.
+                        30
+001B 7D0A               31             mov r5,#10              ; Uloží do R5 hodnotu 10, která znamená prázdný znak displeje.
+                        32
+001D 120118             33             call zobraz1            ; Zavolá funkci, která zobrazí hodnotu z R5 na první pozici displeje.
+0020 120120             34             call zobraz2            ; Zavolá funkci, která zobrazí hodnotu z R5 na druhou pozici displeje
+0023 120128             35             call zobraz3            ; Zavolá funkci, která zobrazí hodnotu z R5 na třetí pozici displeje.
+0026 120130             36             call zobraz4            ; Zavolá funkci, která zobrazí hodnotu z R5 na čtvrtou pozici displej
+                        37
+                        38     smycka:                 ; Začátek hlavní smyčky, program se sem stále vrací.
+0029 1200BC             39             call nacti              ; Zavolá funkci načtení klávesy a čeká na první číslici PINu.
+002C B51417             40             cjne a,20,puk           ; Porovná zadanou hodnotu v A s první číslicí PINu. Pokud nesouhlasí,
+002F 1200BC             41             call nacti              ; Načte druhou číslici PINu.
+0032 B515F4             42             cjne a,21,smycka        ; Porovná druhou číslici PINu. Pokud nesouhlasí, vrátí se na začátek.
+0035 1200BC             43             call nacti              ; Načte třetí číslici PINu.
+0038 B516EE             44             cjne a,22,smycka        ; Porovná třetí číslici PINu. Pokud nesouhlasí, vrátí se na začátek.
+003B 1200BC             45             call nacti              ; Načte čtvrtou číslici PINu.
+003E B517E8             46             cjne a,23,smycka        ; Porovná čtvrtou číslici PINu. Pokud nesouhlasí, vrátí se na začátek
+0041 1200E5             47             call blikej             ; PIN byl správně, zavolá blikání displeje.
+0044 80E3               48             jmp smycka              ; Vrátí program zpět na začátek zadávání PINu.
+                        49
+                        50     puk:                    ; Sem program skočí, pokud nebyla první číslice PINu správná a kontroluje se
+0046 B518E0             51             cjne a,24,smycka        ; Porovná zadanou číslici s první číslicí PUKu uloženou v RAM 24. Pok
+0049 1200BC             52             call nacti              ; Načte druhou číslici PUKu.
+004C B519DA             53             cjne a,25,smycka        ; Porovná druhou číslici PUKu s hodnotou v RAM 25. Pokud nesedí, vrát
+004F 1200BC             54             call nacti              ; Načte třetí číslici PUKu.
+0052 B51AD4             55             cjne a,26,smycka        ; Porovná třetí číslici PUKu s hodnotou v RAM 26. Pokud nesedí, vrátí
+0055 1200BC             56             call nacti              ; Načte čtvrtou číslici PUKu.
+0058 B51BCE             57             cjne a,27,smycka        ; Porovná čtvrtou číslici PUKu s hodnotou v RAM 27. Pokud nesedí, vrá
+005B 1200CD             58             call zobrazpin          ; PUK je správný, zobrazí aktuální PIN na displeji.
+005E 75B070             59             mov disp,#01110000b     ; Nastaví desetinnou tečku na displeji jako označení první měněné čís
+                        60
+                        61     pin1:                   ; Začátek zadávání první číslice nového PINu.
+0061 120113             62             call klavesa            ; Načte hodnotu z klávesnice.
+0064 B40002             63             cjne a,#0,pin1a         ; Zkontroluje, jestli byla nějaká klávesa stisknuta. Pokud ano, pokra
+0067 80F8               64             jmp pin1                ; Pokud nebyla klávesa stisknuta, čeká znovu.
+                        65
+                        66     pin1a:                  ; Sem program přijde po zadání první číslice nového PINu.
+0069 F514               67             mov 20,a                ; Uloží první číslici nového PINu do RAM adresy 20.
+006B FD                 68             mov r5,a                ; Uloží zadané číslo do registru R5 pro zobrazení.
+006C 120130             69             call zobraz4            ; Zobrazí první číslici nového PINu na čtvrté pozici displeje.
+006F 120138             70             call zpomal             ; Udělá časovou prodlevu.
+0072 75B060             71             mov disp,#01100000b     ; Posune desetinnou tečku na další číslici.
+                        72
+                        73     pin2:                   ; Začátek zadávání druhé číslice nového PINu.
+0075 120113             74             call klavesa            ; Načte hodnotu z klávesnice.
+0078 B40002             75             cjne a,#0,pin2a         ; Kontroluje, jestli byla klávesa stisknuta.
+007B 80F8               76             jmp pin2                ; Pokud ne, čeká dál.
+                        77
+                        78     pin2a:                  ; Sem program přijde po zadání druhé číslice nového PINu.
+007D F515               79             mov 21,a                ; Uloží druhou číslici nového PINu do RAM adresy 21.
+007F FD                 80             mov r5,a                ; Připraví číslo pro zobrazení na displeji.
+0080 120128             81             call zobraz3            ; Zobrazí druhou číslici na třetí pozici displeje.
+0083 120138             82             call zpomal             ; Udělá krátkou prodlevu.
+0086 75B050             83             mov disp,#01010000b     ; Posune desetinnou tečku na další číslici.
+                        84
+                        85     pin3:                   ; Začátek zadávání třetí číslice nového PINu.
+0089 120113             86             call klavesa            ; Načte hodnotu z klávesnice.
+008C B40002             87             cjne a,#0,pin3a         ; Kontroluje, zda byla klávesa stisknuta.
+008F 80F8               88             jmp pin3                ; Pokud nebyla, čeká dál.
+                        89
+                        90     pin3a:                  ; Sem program přijde po zadání třetí číslice nového PINu.
+0091 F516               91             mov 22,a                ; Uloží třetí číslici nového PINu do RAM adresy 22.
+0093 FD                 92             mov r5,a                ; Připraví číslo pro zobrazení.
+0094 120120             93             call zobraz2            ; Zobrazí třetí číslici na druhé pozici displeje.
+0097 120138             94             call zpomal             ; Udělá časovou prodlevu.
+009A 75B040             95             mov disp,#01000000b     ; Posune desetinnou tečku na poslední číslici.
+                        96
+                        97     pin4:                   ; Začátek zadávání čtvrté číslice nového PINu.
+009D 120113             98             call klavesa            ; Načte hodnotu z klávesnice.
+00A0 B40002             99             cjne a,#0,pin4a         ; Kontroluje, jestli byla klávesa stisknuta.
+00A3 80F8              100             jmp pin4                ; Pokud nebyla, čeká dál.
+                       101
+                       102     pin4a:                  ; Sem program přijde po zadání poslední číslice nového PINu.
+00A5 F517              103             mov 23,a                ; Uloží čtvrtou číslici nového PINu do RAM adresy 23.
+00A7 FD                104             mov r5,a                ; Připraví poslední číslici pro zobrazení.
+00A8 120118            105             call zobraz1            ; Zobrazí poslední číslici na první pozici displeje.
+00AB 120138            106             call zpomal             ; První prodleva po zadání PINu.
+00AE 120138            107             call zpomal             ; Druhá prodleva po zadání PINu.
+00B1 120138            108             call zpomal             ; Třetí prodleva po zadání PINu.
+00B4 120138            109             call zpomal             ; Čtvrtá prodleva po zadání PINu.
+00B7 1200E5            110             call blikej             ; Po úspěšné změně PINu začne displej blikat.
+00BA 0129              111             jmp smycka              ; Vrátí program zpět na kontrolu nového PINu.
+                       112
+                       113     nacti:                  ; Podprogram pro načtení jedné číslice z klávesnice.
+00BC 120113            114             call klavesa            ; Zavolá funkci klavesa, která načte stisknutou klávesu.
+00BF B40002            115             cjne a,#0,nacti1        ; Porovná hodnotu v registru A s nulou. Pokud není 0, byla stisknuta
+00C2 80F8              116             jmp nacti               ; Pokud nebyla stisknuta žádná klávesa, vrátí se zpět a čeká.
+                       117
+                       118     nacti1:                 ; Část programu, která pokračuje po zadání klávesy.
+00C4 FD                119             mov r5,a                ; Uloží zadanou hodnotu do registru R5 pro zobrazení.
+00C5 120118            120             call zobraz1            ; Zobrazí zadanou číslici na první pozici displeje.
+00C8 120138            121             call zpomal             ; Udělá krátkou prodlevu, aby bylo číslo vidět.
+00CB EC                122             mov a,r4                ; Přesune poslední stisknutou klávesu z registru R4 zpět do A.
+00CC 22                123             ret                     ; Vrátí se zpět do části programu, odkud byla funkce zavolána.
+                       124
+                       125     zobrazpin:              ; Podprogram pro zobrazení aktuálně uloženého PINu.
+00CD AD14              126             mov r5,20               ; Načte první číslici PINu z RAM adresy 20 do registru R5.
+00CF 120130            127             call zobraz4            ; Zobrazí první číslici PINu na čtvrté pozici displeje.
+00D2 AD15              128             mov r5,21               ; Načte druhou číslici PINu z RAM adresy 21.
+00D4 120128            129             call zobraz3            ; Zobrazí druhou číslici PINu na třetí pozici displeje.
+00D7 AD16              130             mov r5,22               ; Načte třetí číslici PINu z RAM adresy 22.
+00D9 120120            131             call zobraz2            ; Zobrazí třetí číslici PINu na druhé pozici displeje.
+00DC AD17              132             mov r5,23               ; Načte čtvrtou číslici PINu z RAM adresy 23.
+00DE 120118            133             call zobraz1            ; Zobrazí čtvrtou číslici PINu na první pozici displeje.
+00E1 120138            134             call zpomal             ; Udělá prodlevu, aby byl PIN viditelný.
+00E4 22                135             ret                     ; Vrátí se zpět do hlavního programu.
+                       136
+                       137     blikej:                 ; Podprogram pro blikání displeje po správném PINu nebo změně PINu.
+00E5 7D08              138             mov r5,#8               ; Nastaví hodnotu 8 pro zobrazení na displeji.
+00E7 120118            139             call zobraz1            ; Zobrazí číslo 8 na první pozici displeje.
+00EA 120120            140             call zobraz2            ; Zobrazí číslo 8 na druhé pozici displeje.
+00ED 120128            141             call zobraz3            ; Zobrazí číslo 8 na třetí pozici displeje.
+00F0 120130            142             call zobraz4            ; Zobrazí číslo 8 na čtvrté pozici displeje.
+00F3 120138            143             call zpomal             ; Čekací doba mezi rozsvícením a zhasnutím.
+00F6 7D0A              144             mov r5,#10              ; Nastaví hodnotu 10, která znamená prázdný znak (zhasnutí displeje).
+00F8 120118            145             call zobraz1            ; Zhasne první pozici displeje.
+00FB 120120            146             call zobraz2            ; Zhasne druhou pozici displeje.
+00FE 120128            147             call zobraz3            ; Zhasne třetí pozici displeje.
+0101 120130            148             call zobraz4            ; Zhasne čtvrtou pozici displeje.
+0104 120138            149             call zpomal             ; Čekací doba mezi zhasnutím a dalším rozsvícením.
+0107 120113            150             call klavesa            ;Zkontroluje, jestli uživatel nezmáčkl nějakou klávesu.
+010A B40002            151             cjne a,#0,bl1           ; Pokud byla stisknuta klávesa, skočí na konec blikání.
+010D 80D6              152             jmp blikej              ; Pokud nebyla stisknuta klávesa, pokračuje další blikání.
+                       153     bl1:                    ; Konec blikací smyčky.
+010F 120138            154             call zpomal             ; Udělá ještě jednu krátkou prodlevu.
+0112 22                155             ret                     ; Vrátí se zpět do programu.
+                       156
+                       157     klavesa:                ; Podprogram pro načtení hodnoty z klávesnice.
+0113 E590              158             mov a,klv               ; Načte stav portu P1 (klávesnice) do registru A.
+0115 F4                159             cpl a                   ; Obrátí všechny bity v registru A, protože klávesnice posílá opačný
+0116 FC                160             mov r4,a                ; Uloží načtenou a upravenou hodnotu klávesy do registru R4.
+0117 22                161             ret                     ; Vrátí se zpět do programu.
+                       162
+                       163     zobraz1:                ; Podprogram pro zobrazení čísla z R5 na první pozici displeje.
+0118 ED                164             mov a,r5                ; Přesune hodnotu z registru R5 do registru A.
+0119 540F              165             anl a,#00001111b        ; Pomocí AND ponechá pouze spodní 4 bity, které obsahují číslici 0-9.
+011B 4400              166             orl a,#00000000b        ; Nastaví bity určující první pozici displeje.
+011D F5B0              167             mov disp,a              ; Pošle výslednou hodnotu na port displeje P3.
+011F 22                168             ret                     ; Návrat zpět do programu.
+                       169
+                       170     zobraz2:                ; Podprogram pro zobrazení čísla z R5 na druhou pozici displeje.
+0120 ED                171             mov a,r5                ; Přesune hodnotu z R5 do registru A.
+0121 540F              172             anl a,#00001111b        ; Oddělí pouze hodnotu číslice.
+0123 4410              173             orl a,#00010000b        ; Přidá nastavení pro druhou pozici displeje.
+0125 F5B0              174             mov disp,a              ;Odešle hodnotu na port displeje.
+0127 22                175             ret                     ; Návrat zpět.
+                       176
+                       177     zobraz3:                ; Podprogram pro zobrazení čísla z R5 na třetí pozici displeje.
+0128 ED                178             mov a,r5                ; Přesune hodnotu z R5 do registru A.
+0129 540F              179             anl a,#00001111b        ; Ponechá pouze spodní 4 bity s číslem.
+012B 4420              180             orl a,#00100000b        ; Přidá nastavení pro třetí pozici displeje.
+012D F5B0              181             mov disp,a              ; Odešle hodnotu na displej.
+012F 22                182             ret                     ; Návrat zpět.
+                       183
+                       184     zobraz4:                ; Podprogram pro zobrazení čísla z R5 na čtvrtou pozici displeje.
+0130 ED                185             mov a,r5                ; Přesune hodnotu z R5 do registru A.
+0131 540F              186             anl a,#00001111b        ; Vybere pouze hodnotu číslice.
+0133 4430              187             orl a,#00110000b        ; Přidá nastavení pro čtvrtou pozici displeje.
+0135 F5B0              188             mov disp,a              ; Odešle hodnotu na displej.
+0137 22                189             ret                     ; Návrat zpět.
+                       190
+                       191     zpomal:                 ; Podprogram vytvářející časové zpoždění.
+0138 DFFE              192             djnz r7,zpomal          ; Sníží hodnotu v registru R7 o 1. Pokud není nula, skočí zpět a opak
+013A DEFC              193             djnz r6,zpomal          ; Po vyčerpání R7 sníží R6 o 1 a znovu opakuje celou smyčku.
+013C 22                194             ret                     ; Po dokončení zpoždění se vrátí zpět do programu.
+                       195     end                     ; Konec programu.
+ASSEMBLY COMPLETE, NO ERRORS FOUND, NO WARNINGS
+
+
+SYMBOL TABLE:
+??MCU_8051_IDE . . . . . . . . . . .  N  NUMB  8051H  NOT USED
+??VERSION. . . . . . . . . . . . . .  N  NUMB  0149H  NOT USED
+AC . . . . . . . . . . . . . . . . .  B  ADDR  00D6H  NOT USED
+ACC. . . . . . . . . . . . . . . . .  D  ADDR  00E0H  NOT USED
+ACSR . . . . . . . . . . . . . . . .  D  ADDR  0097H  NOT USED
+ADCF . . . . . . . . . . . . . . . .  D  ADDR  00F6H  NOT USED
+ADCLK. . . . . . . . . . . . . . . .  D  ADDR  00F2H  NOT USED
+ADCON. . . . . . . . . . . . . . . .  D  ADDR  00F3H  NOT USED
+ADDH . . . . . . . . . . . . . . . .  D  ADDR  00F5H  NOT USED
+ADDL . . . . . . . . . . . . . . . .  D  ADDR  00F4H  NOT USED
+AUXR . . . . . . . . . . . . . . . .  D  ADDR  008EH  NOT USED
+AUXR1. . . . . . . . . . . . . . . .  D  ADDR  00A2H  NOT USED
+B. . . . . . . . . . . . . . . . . .  D  ADDR  00F0H  NOT USED
+BDRCON . . . . . . . . . . . . . . .  D  ADDR  009BH  NOT USED
+BDRCON_1 . . . . . . . . . . . . . .  D  ADDR  009CH  NOT USED
+BL1. . . . . . . . . . . . . . . . .  C  ADDR  010FH
+BLIKEJ . . . . . . . . . . . . . . .  C  ADDR  00E5H
+BRL. . . . . . . . . . . . . . . . .  D  ADDR  009AH  NOT USED
+CCAP0H . . . . . . . . . . . . . . .  D  ADDR  00FAH  NOT USED
+CCAP0L . . . . . . . . . . . . . . .  D  ADDR  00EAH  NOT USED
+CCAP1H . . . . . . . . . . . . . . .  D  ADDR  00FBH  NOT USED
+CCAP1L . . . . . . . . . . . . . . .  D  ADDR  00EBH  NOT USED
+CCAP2H . . . . . . . . . . . . . . .  D  ADDR  00FCH  NOT USED
+CCAP3H . . . . . . . . . . . . . . .  D  ADDR  00FDH  NOT USED
+CCAP4H . . . . . . . . . . . . . . .  D  ADDR  00FEH  NOT USED
+CCAPL2H. . . . . . . . . . . . . . .  D  ADDR  00FCH  NOT USED
+CCAPL2L. . . . . . . . . . . . . . .  D  ADDR  00ECH  NOT USED
+CCAPL3H. . . . . . . . . . . . . . .  D  ADDR  00FDH  NOT USED
+CCAPL3L. . . . . . . . . . . . . . .  D  ADDR  00EDH  NOT USED
+CCAPL4H. . . . . . . . . . . . . . .  D  ADDR  00FEH  NOT USED
+CCAPL4L. . . . . . . . . . . . . . .  D  ADDR  00EEH  NOT USED
+CCAPM0 . . . . . . . . . . . . . . .  D  ADDR  00DAH  NOT USED
+CCAPM1 . . . . . . . . . . . . . . .  D  ADDR  00DBH  NOT USED
+CCAPM2 . . . . . . . . . . . . . . .  D  ADDR  00DCH  NOT USED
+CCAPM3 . . . . . . . . . . . . . . .  D  ADDR  00DDH  NOT USED
+CCAPM4 . . . . . . . . . . . . . . .  D  ADDR  00DEH  NOT USED
+CCF0 . . . . . . . . . . . . . . . .  B  ADDR  00D8H  NOT USED
+CCF1 . . . . . . . . . . . . . . . .  B  ADDR  00D9H  NOT USED
+CCF2 . . . . . . . . . . . . . . . .  B  ADDR  00DAH  NOT USED
+CCF3 . . . . . . . . . . . . . . . .  B  ADDR  00DBH  NOT USED
+CCF4 . . . . . . . . . . . . . . . .  B  ADDR  00DCH  NOT USED
+CCON . . . . . . . . . . . . . . . .  D  ADDR  00D8H  NOT USED
+CFINT. . . . . . . . . . . . . . . .  C  ADDR  0033H  NOT USED
+CH . . . . . . . . . . . . . . . . .  D  ADDR  00F9H  NOT USED
+CKCON. . . . . . . . . . . . . . . .  D  ADDR  008FH  NOT USED
+CKCON0 . . . . . . . . . . . . . . .  D  ADDR  008FH  NOT USED
+CKRL . . . . . . . . . . . . . . . .  D  ADDR  0097H  NOT USED
+CKSEL. . . . . . . . . . . . . . . .  D  ADDR  0085H  NOT USED
+CL . . . . . . . . . . . . . . . . .  D  ADDR  00E9H  NOT USED
+CLKREG . . . . . . . . . . . . . . .  D  ADDR  008FH  NOT USED
+CMOD . . . . . . . . . . . . . . . .  D  ADDR  00D9H  NOT USED
+CPRL2. . . . . . . . . . . . . . . .  B  ADDR  00C8H  NOT USED
+CR . . . . . . . . . . . . . . . . .  B  ADDR  00DEH  NOT USED
+CT2. . . . . . . . . . . . . . . . .  B  ADDR  00C9H  NOT USED
+CY . . . . . . . . . . . . . . . . .  B  ADDR  00D7H  NOT USED
+DISP . . . . . . . . . . . . . . . .  N  NUMB  00B0H
+DP0H . . . . . . . . . . . . . . . .  D  ADDR  0083H  NOT USED
+DP0L . . . . . . . . . . . . . . . .  D  ADDR  0082H  NOT USED
+DP1H . . . . . . . . . . . . . . . .  D  ADDR  0085H  NOT USED
+DP1L . . . . . . . . . . . . . . . .  D  ADDR  0084H  NOT USED
+DPH. . . . . . . . . . . . . . . . .  D  ADDR  0083H  NOT USED
+DPL. . . . . . . . . . . . . . . . .  D  ADDR  0082H  NOT USED
+EA . . . . . . . . . . . . . . . . .  B  ADDR  00AFH  NOT USED
+EC . . . . . . . . . . . . . . . . .  B  ADDR  00AEH  NOT USED
+EECON. . . . . . . . . . . . . . . .  D  ADDR  0096H  NOT USED
+ES . . . . . . . . . . . . . . . . .  B  ADDR  00ACH  NOT USED
+ET0. . . . . . . . . . . . . . . . .  B  ADDR  00A9H  NOT USED
+ET1. . . . . . . . . . . . . . . . .  B  ADDR  00ABH  NOT USED
+ET2. . . . . . . . . . . . . . . . .  B  ADDR  00ADH  NOT USED
+EX0. . . . . . . . . . . . . . . . .  B  ADDR  00A8H  NOT USED
+EX1. . . . . . . . . . . . . . . . .  B  ADDR  00AAH  NOT USED
+EXEN2. . . . . . . . . . . . . . . .  B  ADDR  00CBH  NOT USED
+EXF2 . . . . . . . . . . . . . . . .  B  ADDR  00CEH  NOT USED
+EXTI0. . . . . . . . . . . . . . . .  C  ADDR  0003H  NOT USED
+EXTI1. . . . . . . . . . . . . . . .  C  ADDR  0013H  NOT USED
+F0 . . . . . . . . . . . . . . . . .  B  ADDR  00D5H  NOT USED
+FE . . . . . . . . . . . . . . . . .  B  ADDR  009FH  NOT USED
+IE . . . . . . . . . . . . . . . . .  D  ADDR  00A8H  NOT USED
+IE0. . . . . . . . . . . . . . . . .  B  ADDR  0089H  NOT USED
+IE1. . . . . . . . . . . . . . . . .  B  ADDR  008BH  NOT USED
+INT0 . . . . . . . . . . . . . . . .  B  ADDR  00B2H  NOT USED
+INT1 . . . . . . . . . . . . . . . .  B  ADDR  00B3H  NOT USED
+IP . . . . . . . . . . . . . . . . .  D  ADDR  00B8H  NOT USED
+IPH. . . . . . . . . . . . . . . . .  D  ADDR  00B7H  NOT USED
+IPH0 . . . . . . . . . . . . . . . .  D  ADDR  00B7H  NOT USED
+IPH1 . . . . . . . . . . . . . . . .  D  ADDR  00B3H  NOT USED
+IPL0 . . . . . . . . . . . . . . . .  D  ADDR  00B8H  NOT USED
+IPL1 . . . . . . . . . . . . . . . .  D  ADDR  00B2H  NOT USED
+IT0. . . . . . . . . . . . . . . . .  B  ADDR  0088H  NOT USED
+IT1. . . . . . . . . . . . . . . . .  B  ADDR  008AH  NOT USED
+KBE. . . . . . . . . . . . . . . . .  D  ADDR  009DH  NOT USED
+KBF. . . . . . . . . . . . . . . . .  D  ADDR  009EH  NOT USED
+KBLS . . . . . . . . . . . . . . . .  D  ADDR  009CH  NOT USED
+KLAVESA. . . . . . . . . . . . . . .  C  ADDR  0113H
+KLV. . . . . . . . . . . . . . . . .  N  NUMB  0090H
+NACTI. . . . . . . . . . . . . . . .  C  ADDR  00BCH
+NACTI1 . . . . . . . . . . . . . . .  C  ADDR  00C4H
+OSCCON . . . . . . . . . . . . . . .  D  ADDR  0086H  NOT USED
+OV . . . . . . . . . . . . . . . . .  B  ADDR  00D2H  NOT USED
+P. . . . . . . . . . . . . . . . . .  B  ADDR  00D0H  NOT USED
+P0 . . . . . . . . . . . . . . . . .  D  ADDR  0080H  NOT USED
+P1 . . . . . . . . . . . . . . . . .  D  ADDR  0090H  NOT USED
+P1M1 . . . . . . . . . . . . . . . .  D  ADDR  00D4H  NOT USED
+P1M2 . . . . . . . . . . . . . . . .  D  ADDR  00E2H  NOT USED
+P2 . . . . . . . . . . . . . . . . .  D  ADDR  00A0H  NOT USED
+P3 . . . . . . . . . . . . . . . . .  D  ADDR  00B0H  NOT USED
+P3M1 . . . . . . . . . . . . . . . .  D  ADDR  00D5H  NOT USED
+P3M2 . . . . . . . . . . . . . . . .  D  ADDR  00E3H  NOT USED
+P4 . . . . . . . . . . . . . . . . .  D  ADDR  00C0H  NOT USED
+P4M1 . . . . . . . . . . . . . . . .  D  ADDR  00D6H  NOT USED
+P4M2 . . . . . . . . . . . . . . . .  D  ADDR  00E4H  NOT USED
+P5 . . . . . . . . . . . . . . . . .  D  ADDR  00E8H  NOT USED
+PC . . . . . . . . . . . . . . . . .  B  ADDR  00BEH  NOT USED
+PCON . . . . . . . . . . . . . . . .  D  ADDR  0087H  NOT USED
+PIN1 . . . . . . . . . . . . . . . .  C  ADDR  0061H
+PIN1A. . . . . . . . . . . . . . . .  C  ADDR  0069H
+PIN2 . . . . . . . . . . . . . . . .  C  ADDR  0075H
+PIN2A. . . . . . . . . . . . . . . .  C  ADDR  007DH
+PIN3 . . . . . . . . . . . . . . . .  C  ADDR  0089H
+PIN3A. . . . . . . . . . . . . . . .  C  ADDR  0091H
+PIN4 . . . . . . . . . . . . . . . .  C  ADDR  009DH
+PIN4A. . . . . . . . . . . . . . . .  C  ADDR  00A5H
+PPCL . . . . . . . . . . . . . . . .  B  ADDR  00BEH  NOT USED
+PS . . . . . . . . . . . . . . . . .  B  ADDR  00BCH  NOT USED
+PSL. . . . . . . . . . . . . . . . .  B  ADDR  00BCH  NOT USED
+PSW. . . . . . . . . . . . . . . . .  D  ADDR  00D0H  NOT USED
+PT0. . . . . . . . . . . . . . . . .  B  ADDR  00B9H  NOT USED
+PT0L . . . . . . . . . . . . . . . .  B  ADDR  00B9H  NOT USED
+PT1. . . . . . . . . . . . . . . . .  B  ADDR  00BBH  NOT USED
+PT1L . . . . . . . . . . . . . . . .  B  ADDR  00BBH  NOT USED
+PT2. . . . . . . . . . . . . . . . .  B  ADDR  00BDH  NOT USED
+PT2L . . . . . . . . . . . . . . . .  B  ADDR  00BDH  NOT USED
+PUK. . . . . . . . . . . . . . . . .  C  ADDR  0046H
+PX0. . . . . . . . . . . . . . . . .  B  ADDR  00B8H  NOT USED
+PX0L . . . . . . . . . . . . . . . .  B  ADDR  00B8H  NOT USED
+PX1. . . . . . . . . . . . . . . . .  B  ADDR  00BAH  NOT USED
+PX1L . . . . . . . . . . . . . . . .  B  ADDR  00BAH  NOT USED
+RB8. . . . . . . . . . . . . . . . .  B  ADDR  009AH  NOT USED
+RCAP2H . . . . . . . . . . . . . . .  D  ADDR  00CBH  NOT USED
+RCAP2L . . . . . . . . . . . . . . .  D  ADDR  00CAH  NOT USED
+RCLK . . . . . . . . . . . . . . . .  B  ADDR  00CDH  NOT USED
+RD . . . . . . . . . . . . . . . . .  B  ADDR  00B7H  NOT USED
+REN. . . . . . . . . . . . . . . . .  B  ADDR  009CH  NOT USED
+RESET. . . . . . . . . . . . . . . .  C  ADDR  0000H  NOT USED
+RI . . . . . . . . . . . . . . . . .  B  ADDR  0098H  NOT USED
+RS0. . . . . . . . . . . . . . . . .  B  ADDR  00D3H  NOT USED
+RS1. . . . . . . . . . . . . . . . .  B  ADDR  00D4H  NOT USED
+RXD. . . . . . . . . . . . . . . . .  B  ADDR  00B0H  NOT USED
+SADDR. . . . . . . . . . . . . . . .  D  ADDR  00A9H  NOT USED
+SADDR_0. . . . . . . . . . . . . . .  D  ADDR  00A9H  NOT USED
+SADDR_1. . . . . . . . . . . . . . .  D  ADDR  00AAH  NOT USED
+SADEN. . . . . . . . . . . . . . . .  D  ADDR  00B9H  NOT USED
+SADEN_0. . . . . . . . . . . . . . .  D  ADDR  00B9H  NOT USED
+SADEN_1. . . . . . . . . . . . . . .  D  ADDR  00BAH  NOT USED
+SBUF . . . . . . . . . . . . . . . .  D  ADDR  0099H  NOT USED
+SCON . . . . . . . . . . . . . . . .  D  ADDR  0098H  NOT USED
+SINT . . . . . . . . . . . . . . . .  C  ADDR  0023H  NOT USED
+SM0. . . . . . . . . . . . . . . . .  B  ADDR  009FH  NOT USED
+SM1. . . . . . . . . . . . . . . . .  B  ADDR  009EH  NOT USED
+SM2. . . . . . . . . . . . . . . . .  B  ADDR  009DH  NOT USED
+SMYCKA . . . . . . . . . . . . . . .  C  ADDR  0029H
+SP . . . . . . . . . . . . . . . . .  D  ADDR  0081H  NOT USED
+SPCON. . . . . . . . . . . . . . . .  D  ADDR  00C3H  NOT USED
+SPCR . . . . . . . . . . . . . . . .  D  ADDR  00D5H  NOT USED
+SPDAT. . . . . . . . . . . . . . . .  D  ADDR  00C5H  NOT USED
+SPDR . . . . . . . . . . . . . . . .  D  ADDR  0086H  NOT USED
+SPSR . . . . . . . . . . . . . . . .  D  ADDR  00AAH  NOT USED
+SPSTA. . . . . . . . . . . . . . . .  D  ADDR  00C4H  NOT USED
+START. . . . . . . . . . . . . . . .  C  ADDR  0003H
+T0 . . . . . . . . . . . . . . . . .  B  ADDR  00B4H  NOT USED
+T1 . . . . . . . . . . . . . . . . .  B  ADDR  00B5H  NOT USED
+T2CON. . . . . . . . . . . . . . . .  D  ADDR  00C8H  NOT USED
+T2MOD. . . . . . . . . . . . . . . .  D  ADDR  00C9H  NOT USED
+TB8. . . . . . . . . . . . . . . . .  B  ADDR  009BH  NOT USED
+TCLK . . . . . . . . . . . . . . . .  B  ADDR  00CCH  NOT USED
+TCON . . . . . . . . . . . . . . . .  D  ADDR  0088H  NOT USED
+TF0. . . . . . . . . . . . . . . . .  B  ADDR  008DH  NOT USED
+TF1. . . . . . . . . . . . . . . . .  B  ADDR  008FH  NOT USED
+TF2. . . . . . . . . . . . . . . . .  B  ADDR  00CFH  NOT USED
+TH0. . . . . . . . . . . . . . . . .  D  ADDR  008CH  NOT USED
+TH1. . . . . . . . . . . . . . . . .  D  ADDR  008DH  NOT USED
+TH2. . . . . . . . . . . . . . . . .  D  ADDR  00CDH  NOT USED
+TI . . . . . . . . . . . . . . . . .  B  ADDR  0099H  NOT USED
+TIMER0 . . . . . . . . . . . . . . .  C  ADDR  000BH  NOT USED
+TIMER1 . . . . . . . . . . . . . . .  C  ADDR  001BH  NOT USED
+TIMER2 . . . . . . . . . . . . . . .  C  ADDR  002BH  NOT USED
+TL0. . . . . . . . . . . . . . . . .  D  ADDR  008AH  NOT USED
+TL1. . . . . . . . . . . . . . . . .  D  ADDR  008BH  NOT USED
+TL2. . . . . . . . . . . . . . . . .  D  ADDR  00CCH  NOT USED
+TMOD . . . . . . . . . . . . . . . .  D  ADDR  0089H  NOT USED
+TR0. . . . . . . . . . . . . . . . .  B  ADDR  008CH  NOT USED
+TR1. . . . . . . . . . . . . . . . .  B  ADDR  008EH  NOT USED
+TR2. . . . . . . . . . . . . . . . .  B  ADDR  00CAH  NOT USED
+TXD. . . . . . . . . . . . . . . . .  B  ADDR  00B1H  NOT USED
+WDTCON . . . . . . . . . . . . . . .  D  ADDR  00A7H  NOT USED
+WDTPRG . . . . . . . . . . . . . . .  D  ADDR  00A7H  NOT USED
+WDTRST . . . . . . . . . . . . . . .  D  ADDR  00A6H  NOT USED
+WR . . . . . . . . . . . . . . . . .  B  ADDR  00B6H  NOT USED
+ZOBRAZ1. . . . . . . . . . . . . . .  C  ADDR  0118H
+ZOBRAZ2. . . . . . . . . . . . . . .  C  ADDR  0120H
+ZOBRAZ3. . . . . . . . . . . . . . .  C  ADDR  0128H
+ZOBRAZ4. . . . . . . . . . . . . . .  C  ADDR  0130H
+ZOBRAZPIN. . . . . . . . . . . . . .  C  ADDR  00CDH
+ZPOMAL . . . . . . . . . . . . . . .  C  ADDR  0138H
